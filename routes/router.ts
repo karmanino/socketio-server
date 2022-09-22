@@ -1,25 +1,48 @@
 import { Router, Request, Response } from 'express';
+import Server from '../classes/server';
+import { connectedUsers } from '../sockets/sockets';
 
 const router = Router();
 
-router.get('/mensajes', (req: Request, res: Response) => {
-	res.json({
-		ok: true,
-		mensaje: 'Todo está bien!',
-	});
+router.get('/users', (req: Request, res: Response) => {
+	const server = Server.instance;
+
+	connectedUsers.getUserList();
+
+	server.io.allSockets().then(val => {
+		res.json(connectedUsers.getUserList());
+	})
 });
 
-router.post('/mensajes/:id', (req: Request, res: Response) => {
+router.post('/message/:id', (req: Request, res: Response) => {
 
-    const body = req.body.body;
+    const message = req.body.message;
     const from = req.body.from;
     const id = req.params.id;
 
+	const server = Server.instance;
+	server.io.in(id).emit('new-private-message', {from, message});
+
 	res.json({
 		ok: true,
-        body,
+        message,
         from,
         id
+	});
+});
+
+router.post('/message', (req: Request, res: Response) => {
+
+    const message = req.body.message;
+    const from = req.body.from;
+
+	const server = Server.instance;
+	server.io.emit('new-message', {from, message});
+
+	res.json({
+		ok: true,
+        message,
+        from
 	});
 });
 
